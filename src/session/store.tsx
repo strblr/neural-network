@@ -6,7 +6,6 @@ import {
   ActivationType,
   OutputError,
   OutputErrorType,
-  ProblemType,
   Regularization,
   RegularizationType
 } from "@/session/constants.tsx";
@@ -19,20 +18,19 @@ export interface NetworkState {
   layers: Node[][];
   shape: number[];
   randomize: boolean;
-  problem: ProblemType;
   activation: ActivationType;
   outputActivation: ActivationType;
+  outputError: OutputErrorType;
   regularization: RegularizationType | null;
+  regularizationRate: number;
+  learningRate: number;
 }
 
 export interface LearningState {
   epoch: number;
-  learningRate: number;
-  regularizationRate: number;
+  trainingToTestRatio: number;
   batchSize: number;
-  percTrainData: number;
-  collectStats: boolean;
-  outputError: OutputErrorType;
+  lossStats: Record<"training" | "test", number>[];
 }
 
 export interface Actions {
@@ -68,24 +66,23 @@ export interface Link {
   regularization: RegularizationType | null;
 }
 
-const networkState: NetworkState = {
+const defaultNetworkState: NetworkState = {
   layers: [],
   shape: [30, 24, 22, 10],
   randomize: true,
-  problem: ProblemType.Classification,
   activation: ActivationType.ReLU,
   outputActivation: ActivationType.Tanh,
-  regularization: null
+  outputError: OutputErrorType.Square,
+  regularization: null,
+  regularizationRate: 0,
+  learningRate: 0.03
 };
 
-const learningState: LearningState = {
+const defaultLearningState: LearningState = {
   epoch: 0,
-  learningRate: 0.03,
-  regularizationRate: 0,
+  trainingToTestRatio: 50,
   batchSize: 10,
-  percTrainData: 50,
-  collectStats: false,
-  outputError: OutputErrorType.Square
+  lossStats: []
 };
 
 const actions: (
@@ -95,7 +92,6 @@ const actions: (
     const {
       shape,
       randomize,
-      problem,
       activation,
       outputActivation,
       regularization
@@ -106,10 +102,6 @@ const actions: (
 
     const layers: Node[][] = [];
     const layerCount = shape.length;
-    const finalOutputActivation =
-      problem === ProblemType.Regression
-        ? ActivationType.Linear
-        : outputActivation;
 
     // List of layers, with each layer being a list of nodes.
     for (let l = 0; l < layerCount; l++) {
@@ -129,7 +121,7 @@ const actions: (
           inputDer: 0,
           accInputDer: 0,
           numAccumulatedDers: 0,
-          activation: isOutputLayer ? finalOutputActivation : activation
+          activation: isOutputLayer ? outputActivation : activation
         };
         currentLayer.push(node);
         if (l >= 1) {
@@ -295,8 +287,8 @@ const actions: (
 export const useStore = create(
   persist<Store>(
     (...args) => ({
-      ...networkState,
-      ...learningState,
+      ...defaultNetworkState,
+      ...defaultLearningState,
       ...actions(...args)
     }),
     {
@@ -307,4 +299,6 @@ export const useStore = create(
   )
 );
 
-useStore.getState().initLayers();
+if (useStore.getState().layers.length === 0) {
+  useStore.getState().initLayers();
+}

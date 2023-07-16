@@ -44,8 +44,8 @@ export const Activation: Record<ActivationType, ActivationFunction> = {
 /** Error */
 
 export enum OutputErrorType {
-  Square = "Square",
-  MeanSquare = "MeanSquare"
+  Square = "Square sum",
+  MeanSquare = "Mean square"
 }
 
 export interface OutputErrorFunction {
