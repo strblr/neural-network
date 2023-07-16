@@ -44,19 +44,32 @@ export const Activation: Record<ActivationType, ActivationFunction> = {
 /** Error */
 
 export enum OutputErrorType {
-  Square = "Square"
+  Square = "Square",
+  MeanSquare = "MeanSquare"
 }
 
 export interface OutputErrorFunction {
-  error: (output: number, target: number) => number;
-  der: (output: number, target: number) => number;
+  error: (outputs: number[], targets: number[]) => number;
+  der: (output: number, target: number, outputLength: number) => number;
 }
 
 export const OutputError: Record<OutputErrorType, OutputErrorFunction> = {
   [OutputErrorType.Square]: {
-    error: (output: number, target: number) =>
-      0.5 * Math.pow(output - target, 2),
+    error: (outputs: number[], targets: number[]) =>
+      outputs.reduce(
+        (sum, output, i) => sum + Math.pow(output - targets[i], 2),
+        0
+      ) / 2,
     der: (output: number, target: number) => output - target
+  },
+  [OutputErrorType.MeanSquare]: {
+    error: (outputs: number[], targets: number[]) =>
+      outputs.reduce(
+        (sum, output, i) => sum + Math.pow(output - targets[i], 2),
+        0
+      ) / outputs.length,
+    der: (output: number, target: number, outputLength) =>
+      (2 / outputLength) * (output - target)
   }
 };
 

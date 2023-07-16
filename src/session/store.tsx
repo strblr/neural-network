@@ -13,63 +13,99 @@ import {
 
 // State and actions
 
-const defaultStoreState: StoreState = {
+export interface Store extends NetworkState, LearningState, Actions {}
+
+export interface NetworkState {
+  layers: Node[][];
+  shape: number[];
+  randomize: boolean;
+  problem: ProblemType;
+  activation: ActivationType;
+  outputActivation: ActivationType;
+  regularization: RegularizationType | null;
+}
+
+export interface LearningState {
+  epoch: number;
+  learningRate: number;
+  regularizationRate: number;
+  batchSize: number;
+  percTrainData: number;
+  collectStats: boolean;
+  outputError: OutputErrorType;
+}
+
+export interface Actions {
+  initLayers: (state?: Partial<NetworkState>) => void;
+  forwardProp: (inputs: number[]) => number[];
+  backProp: (targets: number[]) => void;
+  updateWeights: () => void;
+}
+
+export interface Node {
+  id: string;
+  inputs: Link[];
+  outputs: Link[];
+  bias: number;
+  totalInput: number;
+  output: number;
+  outputDer: number;
+  inputDer: number;
+  accInputDer: number;
+  numAccumulatedDers: number;
+  activation: ActivationType;
+}
+
+export interface Link {
+  id: string;
+  source: Node;
+  dest: Node;
+  weight: number;
+  isDead: boolean;
+  errorDer: number;
+  accErrorDer: number;
+  numAccumulatedDers: number;
+  regularization: RegularizationType | null;
+}
+
+const networkState: NetworkState = {
+  layers: [],
+  shape: [30, 24, 22, 10],
+  randomize: true,
+  problem: ProblemType.Classification,
+  activation: ActivationType.ReLU,
+  outputActivation: ActivationType.Tanh,
+  regularization: null
+};
+
+const learningState: LearningState = {
   epoch: 0,
   learningRate: 0.03,
   regularizationRate: 0,
   batchSize: 10,
-  discretize: false,
   percTrainData: 50,
-  randomize: true,
   collectStats: false,
-  networkShape: [30, 24, 22, 10],
-  seed: "0",
-  problem: ProblemType.Classification,
-  activation: ActivationType.ReLU,
-  outputActivation: ActivationType.Tanh,
-  outputError: OutputErrorType.Square,
-  regularization: null,
-  layers: []
+  outputError: OutputErrorType.Square
 };
 
-const storeActions: (
+const actions: (
   ...args: Parameters<Parameters<typeof persist<Store>>[0]>
-) => StoreActions = (set, get) => ({
-  setAndInit(store) {
-    set(store);
-    get().initLayers();
-  },
-
-  addLayer() {
-    const newShape = [...get().networkShape];
-    newShape.splice(newShape.length - 1, 0, 4);
-    get().setAndInit({ networkShape: newShape });
-  },
-
-  updateLayer(index, value) {
-    const newShape = [...get().networkShape];
-    newShape[index] = value;
-    get().setAndInit({ networkShape: newShape });
-  },
-
-  dropLayer() {
-    const newShape = [...get().networkShape];
-    newShape.splice(newShape.length - 2, 1);
-    get().setAndInit({ networkShape: newShape });
-  },
-
-  initLayers() {
+) => Actions = (set, get) => ({
+  initLayers(state) {
     const {
+      shape,
       randomize,
-      networkShape,
       problem,
       activation,
       outputActivation,
       regularization
-    } = get();
+    }: NetworkState = {
+      ...get(),
+      ...state
+    };
 
     const layers: Node[][] = [];
-    const layerCount = networkShape.length;
+    const layerCount = shape.length;
     const finalOutputActivation =
       problem === ProblemType.Regression
         ? ActivationType.Linear
@@ -81,7 +117,7 @@ const storeActions: (
       const currentLayer: Node[] = [];
       layers.push(currentLayer);
 
-      for (let n = 0; n < networkShape[l]; n++) {
+      for (let n = 0; n < shape[l]; n++) {
         const node: Node = {
           id: `${l}-${n}`,
           inputs: [],
@@ -117,7 +153,7 @@ const storeActions: (
       }
     }
 
-    set({ epoch: 0, layers });
+    set({ layers, ...state, epoch: 0 });
   },
 
   forwardProp(inputs) {
@@ -157,7 +193,11 @@ const storeActions: (
     const outputLayer = layers[layers.length - 1];
     for (let i = 0; i < outputLayer.length; i++) {
       const node = outputLayer[i];
-      node.outputDer = OutputError[outputError].der(node.output, targets[i]);
+      node.outputDer = OutputError[outputError].der(
+        node.output,
+        targets[i],
+        outputLayer.length
+      );
     }
 
     // Go through the layers backwards.
@@ -247,17 +287,6 @@ const storeActions: (
     }
 
     set({ layers: [...layers] });
-  },
-
-  forEach(accessor, ignoreInputs) {
-    const { layers } = get();
-    for (let l = ignoreInputs ? 1 : 0; l < layers.length; l++) {
-      const currentLayer = layers[l];
-      for (let n = 0; n < currentLayer.length; n++) {
-        const node = currentLayer[n];
-        accessor(node, l, n);
-      }
-    }
   }
 });
 
@@ -266,8 +295,9 @@ const storeActions: (
 export const useStore = create(
   persist<Store>(
     (...args) => ({
-      ...defaultStoreState,
-      ...storeActions(...args)
+      ...networkState,
+      ...learningState,
+      ...actions(...args)
     }),
     {
       name: "neural-network",
@@ -277,66 +307,4 @@ export const useStore = create(
   )
 );
 
-// Types
-
-export interface Store extends StoreState, StoreActions {}
-
-export interface StoreState {
-  epoch: number;
-  learningRate: number;
-  regularizationRate: number;
-  batchSize: number;
-  discretize: boolean;
-  percTrainData: number;
-  randomize: boolean;
-  collectStats: boolean;
-  networkShape: number[];
-  seed: string;
-  problem: ProblemType;
-  activation: ActivationType;
-  outputActivation: ActivationType;
-  outputError: OutputErrorType;
-  regularization: RegularizationType | null;
-  layers: Node[][];
-}
-
-export interface StoreActions {
-  setAndInit: (state: Partial<StoreState>) => void;
-  addLayer: () => void;
-  updateLayer: (index: number, size: number) => void;
-  dropLayer: () => void;
-  initLayers: () => void;
-  forwardProp: (inputs: number[]) => number[];
-  backProp: (targets: number[]) => void;
-  updateWeights: () => void;
-  forEach: (
-    accessor: (node: Node, l: number, n: number) => void,
-    ignoreInputs?: boolean
-  ) => void;
-}
-
-export interface Node {
-  id: string;
-  inputs: Link[];
-  outputs: Link[];
-  bias: number;
-  totalInput: number;
-  output: number;
-  outputDer: number;
-  inputDer: number;
-  accInputDer: number;
-  numAccumulatedDers: number;
-  activation: ActivationType;
-}
-
-export interface Link {
-  id: string;
-  source: Node;
-  dest: Node;
-  weight: number;
-  isDead: boolean;
-  errorDer: number;
-  accErrorDer: number;
-  numAccumulatedDers: number;
-  regularization: RegularizationType | null;
-}
+useStore.getState().initLayers();

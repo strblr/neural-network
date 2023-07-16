@@ -18,17 +18,29 @@ import { useStore } from "@/session/store";
 import { IconMinus, IconPlus } from "@tabler/icons-react";
 
 export default function Aside() {
-  const {
-    epoch,
-    randomize,
-    networkShape,
-    setAndInit,
-    addLayer,
-    updateLayer,
-    dropLayer,
-    initLayers,
-    forwardProp
-  } = useStore(store => omit(store, "layers"), shallow);
+  const { shape, randomize, epoch, initLayers, forwardProp } = useStore(
+    store => omit(store, "layers"),
+    shallow
+  );
+
+  const addLayer = () => {
+    const nextShape = [...shape];
+    nextShape.splice(nextShape.length - 1, 0, 4);
+    initLayers({ shape: nextShape });
+  };
+
+  const updateLayer = (index: number, value: number) => {
+    const nextShape = [...shape];
+    nextShape[index] = value;
+    initLayers({ shape: nextShape });
+  };
+
+  const dropLayer = () => {
+    const nextShape = [...shape];
+    nextShape.splice(nextShape.length - 2, 1);
+    initLayers({ shape: nextShape });
+  };
+
   return (
     <Box component="aside" sx={asideSx}>
       <Box mx="md" my="lg">
@@ -37,27 +49,25 @@ export default function Aside() {
       </Box>
       <Accordion multiple defaultValue={["shape"]}>
         <Accordion.Item value="shape">
-          <Accordion.Control>Shape ({networkShape.length})</Accordion.Control>
+          <Accordion.Control>Shape ({shape.length})</Accordion.Control>
           <Accordion.Panel>
             <Stack spacing="xs">
               <NumberInput
                 label="Input layer"
-                value={networkShape[0]}
+                value={shape[0]}
                 onChange={value => isNumber(value) && updateLayer(0, value)}
               />
               <Input.Wrapper label="Hidden layers">
                 <SimpleGrid cols={4}>
-                  {take(drop(networkShape, 1), networkShape.length - 2).map(
-                    (layer, i) => (
-                      <NumberInput
-                        key={i}
-                        value={layer}
-                        onChange={value =>
-                          isNumber(value) && updateLayer(i + 1, value)
-                        }
-                      />
-                    )
-                  )}
+                  {take(drop(shape, 1), shape.length - 2).map((layer, i) => (
+                    <NumberInput
+                      key={i}
+                      value={layer}
+                      onChange={value =>
+                        isNumber(value) && updateLayer(i + 1, value)
+                      }
+                    />
+                  ))}
                   <Group spacing={4}>
                     <ActionIcon variant="light" onClick={addLayer}>
                       <IconPlus />
@@ -70,19 +80,19 @@ export default function Aside() {
               </Input.Wrapper>
               <NumberInput
                 label="Output layer"
-                value={networkShape[networkShape.length - 1]}
+                value={shape[shape.length - 1]}
                 onChange={value =>
-                  isNumber(value) && updateLayer(networkShape.length - 1, value)
+                  isNumber(value) && updateLayer(shape.length - 1, value)
                 }
               />
               <Group>
-                <Button variant="default" onClick={initLayers}>
+                <Button variant="default" onClick={() => initLayers()}>
                   Reinitialize
                 </Button>
                 <Checkbox
                   label="Randomize"
                   checked={randomize}
-                  onChange={e => setAndInit({ randomize: e.target.checked })}
+                  onChange={e => initLayers({ randomize: e.target.checked })}
                 />
               </Group>
             </Stack>
