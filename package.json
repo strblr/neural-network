@@ -15,10 +15,18 @@
     "@emotion/react": "^11.11.1",
     "@mantine/core": "^6.0.16",
     "@mantine/hooks": "^6.0.16",
+    "@tabler/icons-react": "^2.24.0",
+    "d3": "^7.8.5",
+    "flatted": "^3.2.7",
+    "immer": "^10.0.2",
+    "lodash-es": "^4.17.21",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "zustand": "^4.3.9"
   },
   "devDependencies": {
+    "@types/d3": "^7.4.0",
+    "@types/lodash-es": "^4.17.7",
     "@types/react": "^18.2.14",
     "@types/react-dom": "^18.2.6",
     "@typescript-eslint/eslint-plugin": "^5.61.0",
