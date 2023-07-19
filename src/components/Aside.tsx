@@ -91,7 +91,17 @@ function NetworkSettings() {
     <Accordion.Item value="settings">
       <Accordion.Control>Settings</Accordion.Control>
       <Accordion.Panel>
-        <Divider label={`Shape (${shape.length})`} />
+        <Group>
+          <Button variant="default" onClick={() => initLayers()}>
+            Reinitialize state
+          </Button>
+          <Checkbox
+            label="Randomize"
+            checked={randomize}
+            onChange={e => initLayers({ randomize: e.target.checked })}
+          />
+        </Group>
+        <Divider label={`Shape (${shape.length})`} mt="xl" />
         <Stack spacing="xs">
           <Input.Wrapper label="Input layer">
             <SimpleGrid cols={4}>
@@ -101,7 +111,7 @@ function NetworkSettings() {
               />
             </SimpleGrid>
           </Input.Wrapper>
-          <Input.Wrapper label="Hidden layers">
+          <Input.Wrapper label={`Hidden layers (${shape.length - 2})`}>
             <SimpleGrid cols={4}>
               {take(drop(shape, 1), shape.length - 2).map((layer, i) => (
                 <NumberInput
@@ -132,16 +142,6 @@ function NetworkSettings() {
               />
             </SimpleGrid>
           </Input.Wrapper>
-          <Group>
-            <Button variant="default" onClick={() => initLayers()}>
-              Reinitialize
-            </Button>
-            <Checkbox
-              label="Randomize"
-              checked={randomize}
-              onChange={e => initLayers({ randomize: e.target.checked })}
-            />
-          </Group>
         </Stack>
         <Divider label="Activation" mt="xl" />
         <Stack spacing="xs">
